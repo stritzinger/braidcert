@@ -1,4 +1,4 @@
-#!/bin/ash
+#!/bin/sh
 
 WORK_DIR=certs
 CA_CFG=$WORK_DIR/cfg/braidcert.CA.cfg

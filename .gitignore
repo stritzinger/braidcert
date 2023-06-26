@@ -18,5 +18,6 @@ logs
 *.iml
 rebar3.crashdump
 *~
-priv/ca/*.key
-priv/ca/*.pem
+certs/
+!certs/cfg/braidcert.CA.cfg
+!certs/cfg/braidnet_v3_ext.cfg

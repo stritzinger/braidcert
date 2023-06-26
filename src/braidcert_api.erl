@@ -12,7 +12,7 @@
 ]).
 
 start_handler() ->
-    Port = application:get_env(braidcert, port, 8080),
+    Port = application:get_env(braidcert, cowboy_port, 8080),
     Dispatch = cowboy_router:compile([
         {'_', [
             {'_', ?MODULE, []}
@@ -126,7 +126,7 @@ cert_dir(ID) when is_binary(ID) ->
     cert_dir(erlang:binary_to_list(ID));
 cert_dir(ID) ->
     {ok, Cwd} = file:get_cwd(),
-    filename:join([Cwd, "certs", ID]).
+    filename:join([Cwd, "certs", "requests", ID]).
 
 run_cmd(Executable, Args) ->
     Path = os:find_executable(Executable),
