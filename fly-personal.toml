@@ -1,0 +1,11 @@
+# fly.toml app configuration file generated for braidcert-personal on 2023-06-19T11:39:39+02:00
+#
+# See https://fly.io/docs/reference/configuration/ for information about how to use this file.
+#
+
+app = "braidcert-personal"
+primary_region = "ams"
+
+[http_service]
+  internal_port = 8080
+  force_https = true

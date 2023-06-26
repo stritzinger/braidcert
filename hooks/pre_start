@@ -1,0 +1,17 @@
+#!/bin/ash
+
+WORK_DIR=certs
+CA_CFG=$WORK_DIR/cfg/braidcert.CA.cfg
+CA_KEY=$WORK_DIR/braidcert.CA.key
+CA_CERT=$WORK_DIR/braidcert.CA.pem
+
+# Private key for self-signed root CA:
+openssl genrsa -out $CA_KEY 4096
+
+# Self-signed root CA:
+openssl req \
+    -new \
+    -x509 \
+    -config $CA_CFG \
+    -key $CA_KEY \
+    -out $CA_CERT

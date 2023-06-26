@@ -1,0 +1,5 @@
+[
+    {braidcert, [
+        {key, <<"${BRAIDCERT_KEY}">>}
+    ]}
+].
