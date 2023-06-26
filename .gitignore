@@ -21,3 +21,4 @@ rebar3.crashdump
 certs/
 !certs/cfg/braidcert.CA.cfg
 !certs/cfg/braidnet_v3_ext.cfg
+fly-personal.toml
