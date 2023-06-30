@@ -12,6 +12,10 @@
 ]).
 
 start_handler() ->
+    case application:get_env(braidcert, generate_ca, false) of
+        true  -> generate_ca();
+        false -> ok
+    end,
     Port = application:get_env(braidcert, cowboy_port, 8080),
     Dispatch = cowboy_router:compile([
         {'_', [
@@ -87,6 +91,26 @@ accept_csr(#{path := <<"/csr/", ID/binary>>} = Req, State) ->
     Req2 = cowboy_req:set_resp_body(Cert, Req1),
     {true, Req2, State}.
 
+generate_ca() ->
+    % Generate private key:
+    Cmd = "openssl",
+    Args1 = [
+        "genrsa",
+        "-out", ca_keyfile(),
+        "4096"
+    ],
+    {ok, _} = run_cmd(Cmd, Args1),
+    % Generate CA certificate:
+    Args2 = [
+        "req",
+        "-new",
+        "-x509",
+        "-config", ca_cfg_file(),
+        "-key", ca_keyfile(),
+        "-out", ca_file()
+    ],
+    {ok, _} = run_cmd(Cmd, Args2).
+
 generate_cert(CertDir, CsrFile) ->
     CertFile = cert_file(CertDir),
     Cmd = "openssl",
@@ -115,6 +139,10 @@ ca_file() ->
 ca_keyfile() ->
     {ok, Cwd} = file:get_cwd(),
     filename:join([Cwd, "certs", "braidcert.CA.key"]).
+
+ca_cfg_file() ->
+    {ok, Cwd} = file:get_cwd(),
+    filename:join([Cwd, "certs", "cfg", "braidcert.CA.cfg"]).
 
 csr_file(CertDir) ->
     filename:join(CertDir, "request.csr").

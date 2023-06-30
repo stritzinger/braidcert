@@ -1,5 +1,6 @@
 [
     {braidcert, [
-        {key, <<"${BRAIDCERT_KEY}">>}
+        {key, <<"${BRAIDCERT_KEY}">>},
+        {generate_ca, true}
     ]}
 ].
