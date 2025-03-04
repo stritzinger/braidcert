@@ -106,6 +106,7 @@ generate_ca() ->
         "-new",
         "-x509",
         "-config", ca_cfg_file(),
+        "-days", "30000",
         "-key", ca_keyfile(),
         "-out", ca_file()
     ],
@@ -123,6 +124,7 @@ generate_cert(CertDir, CsrFile) ->
         "-CAcreateserial",
         "-extfile", ext_file(),
         "-copy_extensions", "copy",
+        "-days", "30000",
         "-out", CertFile
     ],
     {ok, _} = run_cmd(Cmd, Args),
