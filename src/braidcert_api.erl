@@ -68,22 +68,22 @@ accept(#{path := <<"/csr/", _/binary>>} = Req, State) ->
     accept_csr(Req, State).
 
 provide_ca(Req, State) ->
-    {ok, CA} = file:read_file(ca_file()),
+    {ok, CA} = file:read_file(ca_cert_path()),
     Req1 = cowboy_req:set_resp_header(
         <<"content-type">>, "application/octet-stream", Req),
     {CA, Req1, State}.
 
-accept_csr(#{path := <<"/csr/", ID/binary>>} = Req, State) ->
+accept_csr(#{path := <<"/csr/", ClientID/binary>>} = Req, State) ->
     {ok, Csr, Req1} = cowboy_req:read_body(Req),
     %---
-    CertDir = cert_dir(ID),
+    CertDir = client_cert_dir(ClientID),
     file:del_dir_r(CertDir),
     ok = filelib:ensure_dir(CertDir),
     ok = file:make_dir(CertDir),
-    CsrFile = csr_file(CertDir),
+    CsrFile = client_csr_path(ClientID),
     ok = file:write_file(CsrFile, Csr),
     %---
-    CertFile = generate_cert(CertDir, CsrFile),
+    CertFile = generate_cert(ClientID, CsrFile),
     {ok, Cert} = file:read_file(CertFile),
     %---
     file:del_dir_r(CertDir),
@@ -96,7 +96,7 @@ generate_ca() ->
     Cmd = "openssl",
     Args1 = [
         "genrsa",
-        "-out", ca_keyfile(),
+        "-out", ca_key_path(),
         "4096"
     ],
     {ok, _} = run_cmd(Cmd, Args1),
@@ -105,24 +105,24 @@ generate_ca() ->
         "req",
         "-new",
         "-x509",
-        "-config", ca_cfg_file(),
+        "-config", ca_cfg_path(),
         "-days", "30000",
-        "-key", ca_keyfile(),
-        "-out", ca_file()
+        "-key", ca_key_path(),
+        "-out", ca_cert_path()
     ],
     {ok, _} = run_cmd(Cmd, Args2).
 
-generate_cert(CertDir, CsrFile) ->
-    CertFile = cert_file(CertDir),
+generate_cert(ClientID, CsrFile) ->
+    CertFile = client_cert_path(ClientID),
     Cmd = "openssl",
     Args = [
         "x509",
         "-req",
         "-in", CsrFile,
-        "-CA", ca_file(),
-        "-CAkey", ca_keyfile(),
+        "-CA", ca_cert_path(),
+        "-CAkey", ca_key_path(),
         "-CAcreateserial",
-        "-extfile", ext_file(),
+        "-extfile", client_ext_path(),
         "-copy_extensions", "copy",
         "-days", "30000",
         "-out", CertFile
@@ -130,33 +130,41 @@ generate_cert(CertDir, CsrFile) ->
     {ok, _} = run_cmd(Cmd, Args),
     CertFile.
 
-ext_file() ->
-    {ok, Cwd} = file:get_cwd(),
-    filename:join([Cwd, "certs", "cfg", "braidnet_v3_ext.cfg"]).
+ca_cert_path() ->
+    filename:join(certs_dir(), "braidcert.CA.pem").
 
-ca_file() ->
-    {ok, Cwd} = file:get_cwd(),
-    filename:join([Cwd, "certs", "braidcert.CA.pem"]).
+ca_key_path() ->
+    filename:join(certs_dir(), "braidcert.CA.key").
 
-ca_keyfile() ->
-    {ok, Cwd} = file:get_cwd(),
-    filename:join([Cwd, "certs", "braidcert.CA.key"]).
+ca_cfg_path() ->
+    Priv = code:priv_dir(braidcert),
+    filename:join([Priv, "cert_cfg", "braidcert.CA.cfg"]).
 
-ca_cfg_file() ->
-    {ok, Cwd} = file:get_cwd(),
-    filename:join([Cwd, "certs", "cfg", "braidcert.CA.cfg"]).
+client_ext_path() ->
+    Priv = code:priv_dir(braidcert),
+    filename:join([Priv, "cert_cfg", "braidnet_v3_ext.cfg"]).
 
-csr_file(CertDir) ->
-    filename:join(CertDir, "request.csr").
+client_csr_path(ClientID) ->
+    filename:join(client_cert_dir(ClientID), "request.csr").
 
-cert_file(CertDir) ->
-    filename:join(CertDir, "cert.pem").
+client_cert_path(ClientID) ->
+    filename:join(client_cert_dir(ClientID), "cert.pem").
 
-cert_dir(ID) when is_binary(ID) ->
-    cert_dir(erlang:binary_to_list(ID));
-cert_dir(ID) ->
-    {ok, Cwd} = file:get_cwd(),
-    filename:join([Cwd, "certs", "requests", ID]).
+client_cert_dir(ClientID) when is_binary(ClientID) ->
+    client_cert_dir(erlang:binary_to_list(ClientID));
+client_cert_dir(ClientID) ->
+    filename:join([certs_dir(), "requests", ClientID]).
+
+certs_dir() ->
+    case application:get_env(braidcert, certs_dir, undefined) of
+        undefined ->
+            {ok, Cwd} = file:get_cwd(),
+            Path = filename:join(Cwd, "certs"),
+            filelib:ensure_path(Path),
+            Path;
+        WorkDir ->
+            WorkDir
+    end.
 
 run_cmd(Executable, Args) ->
     Path = os:find_executable(Executable),
